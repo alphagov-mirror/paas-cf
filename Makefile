@@ -343,3 +343,9 @@ clean-up-s3-secrets:
 .PHONY: crosscheck-s3-credhub-secrets
 crosscheck-s3-credhub-secrets: check-env ## Crosscheck S3 and Credhub secrets
 	@scripts/s3-credhub-crosscheck.rb
+
+.PHONY: credhub
+credhub:
+	$(if ${MAKEFILE_ENV_TARGET},,$(error Must set MAKEFILE_ENV_TARGET))
+	$(if ${DEPLOY_ENV},,$(error Must pass DEPLOY_ENV=<name>))
+	@scripts/credhub_shell.sh
