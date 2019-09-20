@@ -1427,6 +1427,7 @@ jobs:
             GRAFANA_AUTH_GOOGLE_CLIENT_SECRET: ((grafana_auth_google_client_secret))
             UAA_CLIENTS_CF_EXPORTER_SECRET: ((uaa_clients_cf_exporter_secret))
             UAA_CLIENTS_FIREHOSE_EXPORTER_SECRET: ((uaa_clients_firehose_exporter_secret))
+            BOSH_CA_CERT: ((bosh-ca-cert))
           run:
             path: sh
             args:
@@ -1439,6 +1440,8 @@ jobs:
 
                 ./paas-cf/manifests/prometheus/scripts/generate-manifest.sh \
                   > prometheus-manifest-pre-vars/prometheus-manifest-pre-vars.yml
+
+                  exit 1
 
         on_success:
           put: prometheus-manifest-pre-vars
