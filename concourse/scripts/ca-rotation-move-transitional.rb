@@ -76,8 +76,6 @@ leaf_certs = certs['certificates'].reject do |cert|
   ca_certs.include? cert
 end
 
-months_time = Date.today >> 1
-
 puts "Checking leaf certs"
 
 leaf_certs.select do |cert|
@@ -89,7 +87,7 @@ leaf_certs.select do |cert|
     puts "Skipping #{cert['name']} as it has more than one active cert"
     next
   end
-  if expiry_date < months_time
+  if expires_in < 200
     puts "#{cert['name']} expires on #{expiry_date}. Expires in #{expires_in} days time. Regenerating #{cert['name']}."
     `credhub regenerate -n "#{cert['name']}"`
   else
