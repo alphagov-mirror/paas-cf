@@ -602,9 +602,9 @@ resources:
     type: git
     source:
       uri: https://github.com/alphagov/paas-admin.git
-      branch: master
-      tag_filter: ((deploy_env_tag_prefix))
-      commit_verification_keys: ((gpg_public_keys))
+      branch: admin-metric-image-169180189
+      #tag_filter: ((deploy_env_tag_prefix))
+      #commit_verification_keys: ((gpg_public_keys))
 
   - name: prometheus-manifest-pre-vars
     type: s3-iam
