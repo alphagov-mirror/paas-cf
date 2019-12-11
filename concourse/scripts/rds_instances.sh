@@ -1,5 +1,5 @@
-#!/bin/bash
-
+#!/bin/sh
+# shellcheck disable=SC2039
 set -euo pipefail
 
 ACTION=$1
