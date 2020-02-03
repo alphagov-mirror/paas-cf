@@ -46,7 +46,7 @@ RSpec.describe 'prometheus' do
   context 'instance_group' do
     it 'should have a persistent disk' do
       disk_type = prometheus_instance_group.dig('persistent_disk_type')
-      expect(disk_type).to eq('100GB')
+      expect(disk_type).to eq('500GB')
     end
 
     it 'should be highly available' do
