@@ -1,0 +1,229 @@
+---
+
+- type: replace
+  path: /releases/-
+  value:
+    name: vault
+    # FIXME
+    version: 0.1.1
+    url: https://s3-eu-west-1.amazonaws.com/gds-paas-build-releases/vault-0.1.1.tgz
+    sha1: 1ec4d38c327110bf54e1eec25a3f10f162b1ed4c
+
+- type: replace
+  path: /variables/-
+  value:
+    name: vault_ca
+    type: certificate
+    options:
+      is_ca: true
+      common_name: vaultCA
+
+- type: replace
+  path: /variables/-
+  value:
+    name: vault_tls
+    type: certificate
+    options:
+      ca: vault_ca
+      common_name: vault
+      extended_key_usage:
+        - client_auth
+        - server_auth
+      alternative_names:
+        - 127.0.0.1
+        - localhost
+        - "*.vault.service.cf.internal"
+        - vault.service.cf.internal
+
+- type: replace
+  path: /variables/-
+  value:
+    name: vault_admin_password
+    type: password
+    options:
+      length: 64
+
+- type: replace
+  path: /instance_groups/-
+  value:
+    name: vault
+    instances: 1
+    azs: [z1, z2, z3]
+    networks: [{name: cf}]
+
+    persistent_disk_type: 10GB
+
+    stemcell: default
+    vm_type: small
+    vm_extensions:
+      - vault_instance_profile
+
+    jobs:
+      - name: vault
+        release: vault
+        properties:
+          tls:
+            - name: vault
+              key: ((vault_tls.private_key))
+              cert: |
+                ((vault_tls.certificate))
+                ((vault_tls.ca))
+          vault:
+            config: |
+              storage "file" {
+                path = "/var/vcap/store/vault/data"
+              }
+
+              ui = true
+
+              listener "tcp" {
+                address = "0.0.0.0:8200"
+                tls_cert_file = "/var/vcap/jobs/vault/tls/vault/cert.pem"
+                tls_key_file  = "/var/vcap/jobs/vault/tls/vault/key.pem"
+                tls_min_version = "tls12"
+              }
+
+              seal "awskms" {
+                kms_key_id = "2c241c3d-80b6-4766-9eb3-62a66ce537b8"
+              }
+
+      - name: route_registrar
+        release: routing
+        properties:
+          route_registrar:
+            routes:
+              - name: vault
+                tls_port: 8200
+                prepend_instance_index: false
+                registration_interval: 10s
+                uris:
+                  - vault.((system_domain))
+                server_cert_domain_san: vault.service.cf.internal
+
+      - name: scripting
+        release: generic-scripting
+        properties:
+          scripting:
+            post-start-script: |
+              set -ueo pipefail
+              vault="/var/vcap/packages/vault/bin/vault"
+              vault_ca_path_arg="-ca-path=/var/vcap/jobs/vault/tls/vault/cert.pem"
+
+              for i in $(seq 60); do
+                if [ $i -eq "60" ]; then
+                  echo "vault not installed after $i attempts...giving up"
+                  exit 1
+                fi
+
+                if [ -x $vault ]; then
+                  break
+                fi
+
+                echo "waiting for vault to be installed"
+                sleep 1
+              done
+
+              for i in $(seq 60); do
+                if [ $i -eq "60" ]; then
+                  echo "vault not up after $i attempts...giving up"
+                  exit 1
+                fi
+
+                if $vault status $vault_ca_path_arg || [ $? = 2 ]; then
+                  break
+                fi
+
+                echo "waiting for vault to be up"
+                sleep 1
+              done
+
+              if grep -q 'Initialized\s*false' <<< $($vault status $vault_ca_path_arg); then
+                echo "Vault not initialized, bootstrapping"
+                init_output=$($vault operator init $vault_ca_path_arg -n 1 -t 1)
+
+                if [ $? != 0]; then
+                  echo "Attempted to init vault but did not succeed"
+                  echo "$init_output"
+                  exit 1
+                fi
+
+                token=$(echo "$init_output" | grep -o 'Token: .*' | awk '{print $2}')
+
+                $vault login $vault_ca_path_arg $token
+                if [ $? != 0 ]; then
+                  echo "Attempted to log in to vault but did not succeed"
+                  exit 1
+                fi
+
+                $vault auth enable $vault_ca_path_arg userpass
+                if [ $? != 0 ]; then
+                  echo "Attempted to enable userpass but did not succeed"
+                  exit 1
+                fi
+
+                $vault policy write $vault_ca_path_arg admin <(cat <<POLICY
+              # yes this indentation is correct
+              path "auth/*" {
+                capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+              }
+
+              path "sys/auth/*" {
+                capabilities = ["create", "update", "delete", "sudo"]
+              }
+
+              path "sys/auth" {
+                capabilities = ["read"]
+              }
+
+              path "sys/policies/acl/*" {
+                capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+              }
+
+              path "sys/policies/acl" {
+                capabilities = ["list"]
+              }
+
+              path "secret/*" {
+                capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+              }
+
+              path "sys/mounts/*" {
+                capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+              }
+
+              path "sys/health" {
+                capabilities = ["read", "sudo"]
+              }
+
+              path "sys/capabilities" {
+                capabilities = ["create", "update"]
+              }
+
+              path "sys/capabilities-self" {
+                capabilities = ["create", "update"]
+              }
+              POLICY
+                )
+
+                $vault write $vault_ca_path_arg auth/userpass/users/admin "password=((vault_admin_password))" policies=admin
+                if [ $? != 0 ]; then
+                  echo "Attempted to add admin user but did not succeed"
+                  exit 1
+                fi
+
+              else
+                echo "Vault already initialized"
+              fi
+
+              if grep -q 'Sealed\s*true' <<< $($vault status $vault_ca_path_arg); then
+                echo "Vault should be unsealed but is sealed...giving up"
+                exit 1
+              fi
+
+- type: replace
+  path: /releases/-
+  value:
+    name: "generic-scripting"
+    version: "3"
+    url: "https://bosh.io/d/github.com/orange-cloudfoundry/generic-scripting-release?v=3"
+    sha1: "3198161324c49c670282f5c64b471204a3c510bb"
