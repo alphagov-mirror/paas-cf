@@ -37,6 +37,7 @@
             log_level: INFO
             aws_region: "((terraform_outputs_region))"
             resource_prefix: "paas-sqs-broker"
+            additional_user_policy: "((terraform_outputs_restrict_to_local_ips_policy_arn))"
             permissions_boundary: "((terraform_outputs_sqs_broker_permissions_boundary_arn))"
             deploy_environment: "((environment))"
             locket:
