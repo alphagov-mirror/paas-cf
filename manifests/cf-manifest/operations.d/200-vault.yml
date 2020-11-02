@@ -66,7 +66,7 @@
   path: /instance_groups/-
   value:
     name: consul
-    instances: 1
+    instances: 3
     azs: [z1, z2, z3]
     networks: [{name: cf}]
 
@@ -74,6 +74,8 @@
 
     stemcell: default
     vm_type: small
+    vm_extensions:
+      - consul_instance_profile
     update:
       canaries: 0
       max_in_flight: 50
@@ -95,6 +97,13 @@
             ssl_ca: ((consul_ca.ca))
             ssl_cert: ((consul_tls.certificate))
             ssl_key: ((consul_tls.private_key))
+      - name: consul-snapshot
+        release: consul
+        properties:
+          consul-snapshot:
+            s3bucket: momo-consul-backups
+            s3region: ((terraform_outputs_region))
+            backupinterval: 600
 
       # - name: route_registrar
       #   release: routing
