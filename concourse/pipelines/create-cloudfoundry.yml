@@ -569,7 +569,7 @@ resources:
   - name: slack-notification
     type: slack-notification-resource
     source:
-      url: ((slack_webhook_cyber_testing))
+      url: ((slack_webhook_url))
 
 jobs:
   - name: pipeline-lock
@@ -5408,7 +5408,7 @@ jobs:
               AWS_REGION: ((aws_region))
               SYSTEM_DNS_ZONE_NAME: ((system_dns_zone_name))
               DEPLOY_ENV: ((deploy_env))
-              SLACK_WEBHOOK_URL: ((slack_webhook_cyber_testing))
+              SLACK_WEBHOOK_URL: ((slack_webhook_url))
             inputs:
             run:
               path: sh
