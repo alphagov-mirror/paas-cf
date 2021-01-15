@@ -87,12 +87,11 @@ terraform_spec:
 	cd terraform/scripts &&\
 		go get -d -t . &&\
 		go test
-	-wget https://github.com/tmccombs/hcl2json/releases/download/0.3.2/hcl2json_0.3.2_linux_amd64 \
+	-wget "https://github.com/tmccombs/hcl2json/releases/download/0.3.2/hcl2json_0.3.2_$$(go env GOOS)_$$(go env GOARCH)" \
 		-q \
 		-nc \
 		-O "${GOPATH}/bin/hcl2json" # The dash at the start makes it ignore exit codes. `-nc` gives an exit code of 1 if the file already exists
 	chmod +x "${GOPATH}/bin/hcl2json";
-	which hcl2json;
 	cd terraform &&\
 		bundle exec rspec
 
