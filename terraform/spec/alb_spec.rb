@@ -2,22 +2,16 @@ require "json"
 require "open3"
 
 def hcl2json(tf)
-  puts "input was"
-  puts tf
+  o, _, ex = Open3.capture3("which hcl2json")
+  puts "out: " + o
+  puts "exit: " + ex
+
   stdout, stderr, exit_status = Open3.capture3("hcl2json", { stdin_data: tf })
 
   unless exit_status.success?
     warn stderr
   end
-
-  puts "stdout was"
-  puts stdout
-
-  puts "stderr was"
-  puts stderr
-
-  puts "exit status was " + exit_status
-  JSON.parse(stdout)
+  stdout
 end
 
 def get_lbs(tf)

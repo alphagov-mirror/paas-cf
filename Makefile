@@ -92,6 +92,7 @@ terraform_spec:
 		-nc \
 		-O "${GOPATH}/bin/hcl2json" # The dash at the start makes it ignore exit codes. `-nc` gives an exit code of 1 if the file already exists
 	chmod +x "${GOPATH}/bin/hcl2json";
+	which hcl2json;
 	cd terraform &&\
 		bundle exec rspec
 

@@ -93,7 +93,6 @@ jobs:
           TF_IN_AUTOMATION: yes
           GOPATH: "/home/runner/go"
           GOBIN: "/home/runner/go/bin"
-          PATH: "${{env.PATH}}:/home/runner/go/bin"
 
       - name: Platform tests spec
         run: make platform_tests_spec
