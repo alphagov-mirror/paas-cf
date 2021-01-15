@@ -8,7 +8,7 @@ def hcl2json(tf)
     warn stderr
 
   end
-  return JSON.parse(stdout)
+  JSON.parse(stdout)
 end
 
 def get_lbs(tf)
